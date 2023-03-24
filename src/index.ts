@@ -1,7 +1,7 @@
 import {utils,readFile,writeFile as wf} from 'xlsx'
 import { ClientProps, ValidationProps } from './interfaces/Client'
 import 'dotenv/config'
-import Axios from 'axios'
+import axios, { AxiosRequestConfig } from 'axios'
 import {writeFile} from 'fs/promises'
 import path from 'path'
 import { ClientReponseData } from './interfaces/ApiResponse'
@@ -25,27 +25,36 @@ function readClientfromSheet(){
     return client
 }
 
-const api_card = (cnpj:string) => Axios.create({
-    baseURL:`https://api.cnpja.com/rfb/certificate?taxId=${cnpj}`,
-    headers:{
-        Authorization:`${process.env.TOKEN}`
-    },
-    responseType:'stream'
-})
-
-const api_info = (cnpj:string) => Axios.create({
-    baseURL:`https://api.cnpja.com/rfb?taxId=${cnpj}`,
-    headers:{
-        Authorization:`${process.env.TOKEN}`
+function api_card_config(cnpj:string):AxiosRequestConfig{
+    const config:AxiosRequestConfig={
+        url:`https://api.cnpja.com/rfb/certificate?taxId=${cnpj}`,
+        method:'get',
+        responseType:'stream',
+        headers:{
+            Authorization:`${process.env.TOKEN}`
+        }
     }
-})
+    return config
+}
+
+function api_info_config(cnpj:string):AxiosRequestConfig{
+    const config:AxiosRequestConfig={
+        url:`https://api.cnpja.com/rfb?taxId=${cnpj}`,
+        method:'get',
+        headers:{
+            Authorization:`${process.env.TOKEN}`
+        }
+    }
+    return config
+}
+
 
 
 async function generatePDF(cnpj:string,name:string,index:number){
     try{
         const client =  readClientfromSheet()
         console.log(`Gerando pdf ${index+1} de ${client.length} ...`)
-        const data = await api_card(cnpj).get('').then(response => response.data)
+        const data = await axios(api_card_config(cnpj)).then(response => response.data)
         await writeFile(`${path.join(`${process.env.OUTPUT}`,`${cnpj} ${name.replace(/[&\/\\#,+()$~%.'":*?<>{}]/g,'')}.pdf`)}`,data).then(() =>console.log(`Pdf ${index+1} de ${client.length} Gerado`))
     }catch(err){
         console.log(`${err}`)
@@ -80,25 +89,23 @@ async function saveTaxIdCard(){
 
 async function getApiTaxIdData():Promise<ValidationProps[]>{
     try{
-        const valid:ValidationProps[] =[]
-        const client =  readClientfromSheet()
-        client.map(async ({cnpj,name},index) =>{
-            const data:ClientReponseData = await api_info(cnpj).get('').then(response => response.data)
-            const aux:ValidationProps={
+        const valid:ValidationProps[] = []
+        const clientList =  readClientfromSheet()
+        for(const {cnpj,name} of clientList){
+            const data:ClientReponseData = await axios(api_info_config(cnpj)).then(response => response.data)
+            valid.push({
                 cnpj:data.taxId,
-                name,
+                name:name,
                 taxName:data.name,
                 status:data.status.text
-            }
-            valid.push(aux)
-        })
-        valid.forEach(e => console.log(e.name))
+            })
+        }
         return valid
+
     }catch(err){
         throw new Error(`${err}`)
     }
 }
-
 
 
 async function saveNameAndStatusSheet(){
@@ -116,4 +123,4 @@ async function saveNameAndStatusSheet(){
 }
 
 
-saveNameAndStatusSheet()
+getApiTaxIdData()
