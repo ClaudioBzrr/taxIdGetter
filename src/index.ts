@@ -4,18 +4,26 @@ import 'dotenv/config'
 import Axios from 'axios'
 import {writeFile} from 'fs/promises'
 import path from 'path'
+import { ClientReponseData } from './interfaces/ApiResponse'
 
 
-const wb_file =  readFile(`${process.env.SHEET}`)
-const sheetName =  wb_file.SheetNames[0]
-const sheet = wb_file.Sheets[sheetName]
-const range = utils.decode_range(sheet['!ref']!)
-const header =  ['cnpj','name']
 
-range.s.r = 1
-sheet['!ref'] = utils.encode_range(range)
 
-const client:ClientProps[] =  utils.sheet_to_json(sheet,{header,range})
+function readClientfromSheet(){
+
+    const wb_file =  readFile(`${process.env.SHEET}`)
+    const sheetName =  wb_file.SheetNames[0]
+    const sheet = wb_file.Sheets[sheetName]
+    const range = utils.decode_range(sheet['!ref']!)
+    const header =  ['cnpj','name']
+    
+    range.s.r = 1
+    sheet['!ref'] = utils.encode_range(range)
+    
+    const client:ClientProps[] =  utils.sheet_to_json(sheet,{header,range})
+
+    return client
+}
 
 const api_card = (cnpj:string) => Axios.create({
     baseURL:`https://api.cnpja.com/rfb/certificate?taxId=${cnpj}`,
@@ -35,6 +43,7 @@ const api_info = (cnpj:string) => Axios.create({
 
 async function generatePDF(cnpj:string,name:string,index:number){
     try{
+        const client =  readClientfromSheet()
         console.log(`Gerando pdf ${index+1} de ${client.length} ...`)
         const data = await api_card(cnpj).get('').then(response => response.data)
         await writeFile(`${path.join(`${process.env.OUTPUT}`,`${cnpj} ${name.replace(/[&\/\\#,+()$~%.'":*?<>{}]/g,'')}.pdf`)}`,data).then(() =>console.log(`Pdf ${index+1} de ${client.length} Gerado`))
@@ -44,6 +53,7 @@ async function generatePDF(cnpj:string,name:string,index:number){
 }
 
 async function saveTaxIdCard(){
+    const client =  readClientfromSheet()
     const error_client:ClientProps[] = []
     const wb_error = utils.book_new()
     const err_header = [['cnpj','name']]
@@ -68,29 +78,34 @@ async function saveTaxIdCard(){
 }
 
 
-function getApiTaxIdData(){
+async function getApiTaxIdData():Promise<ValidationProps[]>{
     try{
-        const validate:ValidationProps[]= []
-        client.forEach(({cnpj,name},index) =>{
-            setTimeout(async() =>{
-                console.log(`Gerando dados ${index+1} de ${client.length}`)
-                const data:any = await api_info(cnpj).get('').then(response => response.data)
-                validate.push({cnpj,name,taxName:`${data.name}`,status:`${data.status.text}`})
-                console.log(`Dados ${index+1} de ${client.length} gerados`)
-            },10000*(index+1))
+        const valid:ValidationProps[] =[]
+        const client =  readClientfromSheet()
+        client.map(async ({cnpj,name},index) =>{
+            const data:ClientReponseData = await api_info(cnpj).get('').then(response => response.data)
+            const aux:ValidationProps={
+                cnpj:data.taxId,
+                name,
+                taxName:data.name,
+                status:data.status.text
+            }
+            valid.push(aux)
         })
-        return validate
+        valid.forEach(e => console.log(e.name))
+        return valid
     }catch(err){
         throw new Error(`${err}`)
     }
 }
 
-const apiRFBData =  getApiTaxIdData()
+
 
 async function saveNameAndStatusSheet(){
     try{
+        const data = await getApiTaxIdData()
         const wb =  utils.book_new()
-        const ws = utils.json_to_sheet(apiRFBData)
+        const ws = utils.json_to_sheet(data)
         const header = [['CNPJ','Nome no Protheus','Razão Social','Status']]
         utils.sheet_add_aoa(ws,header)
         utils.book_append_sheet(wb,ws,'Clientes')
@@ -100,4 +115,5 @@ async function saveNameAndStatusSheet(){
     }
 }
 
-apiRFBData.forEach(e => console.log(`CNPJ : ${e.cnpj} - Nome Protheus : ${e.name} - Razão social : ${e.taxName} - Status : ${e.status}`))
+
+saveNameAndStatusSheet()
