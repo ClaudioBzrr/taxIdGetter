@@ -7,7 +7,7 @@ import path from 'path'
 import { ClientReponseData } from './interfaces/ApiResponse'
 
 
-
+const sleep = (ms:number) => new Promise(r => setTimeout(r,ms))
 
 function readClientfromSheet(){
 
@@ -89,17 +89,24 @@ async function saveTaxIdCard(){
 
 async function getApiTaxIdData():Promise<ValidationProps[]>{
     try{
+        let index = 0
         const valid:ValidationProps[] = []
         const clientList =  readClientfromSheet()
         for(const {cnpj,name} of clientList){
+            index++
             const data:ClientReponseData = await axios(api_info_config(cnpj)).then(response => response.data)
-            valid.push({
-                cnpj:data.taxId,
-                name:name,
-                taxName:data.name,
-                status:data.status.text
-            })
+            console.log(`Gerando ${index} de ${clientList.length}...`)
+                valid.push({
+                    cnpj:data.taxId,
+                    name:name,
+                    taxName:data.name,
+                    status:data.status.text
+                })
+
+            console.log(`Dados gerados : ${index} de ${clientList.length}`)
+            await sleep(6000*index)
         }
+        console.log(valid.length)
         return valid
 
     }catch(err){
@@ -123,4 +130,4 @@ async function saveNameAndStatusSheet(){
 }
 
 
-getApiTaxIdData()
+saveNameAndStatusSheet()
