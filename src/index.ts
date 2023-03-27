@@ -1,5 +1,5 @@
 import {utils,readFile,writeFile as wf} from 'xlsx'
-import { ClientProps, ValidationProps } from './interfaces/Client'
+import { ClientDataProps, ClientProps, ValidationProps } from './interfaces/Client'
 import 'dotenv/config'
 import axios, { AxiosRequestConfig } from 'axios'
 import {writeFile} from 'fs/promises'
@@ -21,6 +21,22 @@ function readClientfromSheet(){
     sheet['!ref'] = utils.encode_range(range)
     
     const client:ClientProps[] =  utils.sheet_to_json(sheet,{header,range})
+
+    return client
+}
+
+
+function readClientDataFromSheet(){
+    const wb_file =  readFile(`${process.env.SHEET}`)
+    const sheetName =  wb_file.SheetNames[0]
+    const sheet = wb_file.Sheets[sheetName]
+    const range = utils.decode_range(sheet['!ref']!)
+    const header =  ['filial','cnpj','nome','endereco','bairro','cidade','estado','cep']
+    
+    range.s.r = 1
+    sheet['!ref'] = utils.encode_range(range)
+    
+    const client:ClientDataProps[] =  utils.sheet_to_json(sheet,{header,range})
 
     return client
 }
