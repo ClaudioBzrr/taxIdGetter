@@ -1,5 +1,5 @@
 import {utils,readFile,writeFile as wf} from 'xlsx'
-import { ClientDataProps, ClientProps, ValidationProps } from './interfaces/Client'
+import { ClientDataProps, ClientProps, SheetValidationProps, ValidationProps } from './interfaces/Client'
 import 'dotenv/config'
 import axios, { AxiosRequestConfig } from 'axios'
 import {writeFile} from 'fs/promises'
@@ -103,20 +103,32 @@ async function saveTaxIdCard(){
 }
 
 
-async function getApiTaxIdData():Promise<ValidationProps[]>{
+async function getApiTaxIdData():Promise<SheetValidationProps[]>{
     try{
         let index = 0
-        const valid:ValidationProps[] = []
-        const clientList =  readClientfromSheet()
-        for(const {cnpj,name} of clientList){
+        const valid:SheetValidationProps[] = []
+        const clientList =  readClientDataFromSheet()
+        for(const {filial,cnpj,nome,endereco,bairro,cidade,estado,cep} of clientList){
             index++
             await sleep(6000)
             const data:ClientReponseData = await axios(api_info_config(cnpj)).then(response => response.data)
             console.log(`Gerando ${index} de ${clientList.length}...`)
                 valid.push({
-                    cnpj:data.taxId,
-                    name:name,
-                    taxName:data.name,
+                    filial,
+                    cnpj,
+                    apiCnpj:data.taxId,
+                    nome,
+                    apiNome:data.name,
+                    endereco,
+                    apiEndereco:`${data.address.street}, ${data.address.number}`,
+                    bairro,
+                    apiBairro:data.address.district,
+                    cidade,
+                    apiCidade:data.address.city,
+                    estado,
+                    apiEstado:data.address.state,
+                    cep,
+                    apiCep:data.address.zip,
                     status:data.status.text
                 })
 
@@ -136,7 +148,25 @@ async function saveNameAndStatusSheet(){
         const data = await getApiTaxIdData()
         const wb =  utils.book_new()
         const ws = utils.json_to_sheet(data)
-        const header = [['CNPJ','Nome no Protheus','Razão Social','Status']]
+        const header = [[
+            'Filial',
+            'Cnpj',
+            'Receita Cnpj',
+            'Razão',
+            'Receita Razão',
+            'Endereço',
+            'Receita Endereço',
+            'Bairro',
+            'Receita Bairro',
+            'Cidade',
+            'Receita Cidade',
+            'Estado',
+            'Receita Estado',
+            'CEP',
+            'Receita CEP',
+            'Status'
+
+        ]]
         utils.sheet_add_aoa(ws,header)
         utils.book_append_sheet(wb,ws,'Clientes')
         wf(wb,path.join(`${process.env.OUTPUT}`,'validation.xlsx'))

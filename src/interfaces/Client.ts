@@ -21,7 +21,7 @@ export interface ClientDataProps{
     cep:string
 }
 
-export interface SheetClientProps{
+export interface SheetValidationProps{
     filial:string,
     cnpj:string,
     apiCnpj:string,
@@ -36,5 +36,6 @@ export interface SheetClientProps{
     estado:string,
     apiEstado:string
     cep:string,
-    apiCep:string
+    apiCep:string,
+    status:string
 }
