@@ -20,3 +20,21 @@ export interface ClientDataProps{
     estado:string,
     cep:string
 }
+
+export interface SheetClientProps{
+    filial:string,
+    cnpj:string,
+    apiCnpj:string,
+    nome:string,
+    apiNome:string,
+    endereco:string,
+    apiEndereco:string,
+    bairro:string,
+    apiBairro:string,
+    cidade:string,
+    apiCidade:string,
+    estado:string,
+    apiEstado:string
+    cep:string,
+    apiCep:string
+}
