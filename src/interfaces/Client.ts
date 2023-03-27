@@ -9,3 +9,14 @@ export interface ValidationProps{
     taxName:string,
     status:string
 }
+
+export interface ClientDataProps{
+    filial:string,
+    cnpj:string,
+    nome:string,
+    endereco:string,
+    bairro:string,
+    cidade:string,
+    estado:string,
+    cep:string
+}
