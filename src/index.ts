@@ -110,29 +110,29 @@ async function getApiTaxIdData():Promise<SheetValidationProps[]>{
         const clientList =  readClientDataFromSheet()
         for(const {filial,cnpj,nome,endereco,bairro,cidade,estado,cep} of clientList){
             index++
-            await sleep(6000*index)
             console.log(`Gerando ${index} de ${clientList.length}...`)
             const data:ClientReponseData = await axios(api_info_config(cnpj)).then(response => response.data)
                 valid.push({
                     filial,
                     cnpj,
-                    apiCnpj:data.taxId,
+                    apiCnpj:data.cnpj,
                     nome,
-                    apiNome:data.name,
+                    apiNome:data.razao_social,
                     endereco,
-                    apiEndereco:`${data.address.street}, ${data.address.number}`,
+                    apiEndereco:`${data.logradouro}, ${data.numero}`,
                     bairro,
-                    apiBairro:data.address.district,
+                    apiBairro:data.bairro,
                     cidade,
-                    apiCidade:data.address.city,
+                    apiCidade:data.municipio,
                     estado,
-                    apiEstado:data.address.state,
+                    apiEstado:data.uf,
                     cep,
-                    apiCep:data.address.zip,
-                    status:data.status.text
+                    apiCep:data.cep,
+                    status:data.descricao_situacao_cadastral
                 })
-
-            console.log(`Dados gerados : ${index} de ${clientList.length}`)
+                
+                console.log(`Dados gerados : ${index} de ${clientList.length}`)
+                await sleep(6000)
         }
         console.log(valid.length)
         return valid
