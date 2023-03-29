@@ -63,6 +63,13 @@ function api_info_config(cnpj:string):AxiosRequestConfig{
     }
     return config
 }
+function api_open_config(cnpj:string):AxiosRequestConfig{
+    const config:AxiosRequestConfig={
+        url:`https://minhareceita.org/${cnpj}`,
+        method:'get'
+    }
+    return config
+}
 
 
 
@@ -111,7 +118,7 @@ async function getApiTaxIdData():Promise<SheetValidationProps[]>{
         for(const {filial,cnpj,nome,endereco,bairro,cidade,estado,cep} of clientList){
             index++
             console.log(`Gerando ${index} de ${clientList.length}...`)
-            const data:ClientReponseData = await axios(api_info_config(cnpj)).then(response => response.data)
+            const data:ClientReponseData = await axios(api_open_config(cnpj)).then(response => response.data)
                 valid.push({
                     filial,
                     cnpj,
@@ -132,7 +139,7 @@ async function getApiTaxIdData():Promise<SheetValidationProps[]>{
                 })
                 
                 console.log(`Dados gerados : ${index} de ${clientList.length}`)
-                await sleep(6000)
+                // await sleep(6000)
         }
         console.log(valid.length)
         return valid
